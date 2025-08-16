@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>🪐 나만의 행성 그림 만들기 (HTML)</title>
+  <style>
+    :root {
+      --bg: #0b1020; --card: #121a33; --text: #eef3ff; --muted: #9fb0ff;
+      --accent: #6ea8ff; --accent-2: #9ee5ff; --warn: #ffcc66; --err: #ff6b6b;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: radial-gradient(1200px 800px at 80% -20%, #1b2a6b22, transparent), var(--bg); color: var(--text); }
+    header { text-align: center; padding: 28px 16px 8px; }
+    header h1 { margin: 0; font-size: 1.8rem; letter-spacing: 0.2px; }
+    header p { margin: 6px 0 0; color: var(--muted); }
+
+    .container { max-width: 980px; margin: 0 auto; padding: 20px 16px 48px; }
+
+    .card { background: linear-gradient(180deg, #121a33, #0f1530); border: 1px solid #2a335e; border-radius: 18px; padding: 20px; box-shadow: 0 8px 30px #00000044; }
+    .grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+    label { display: block; margin: 12px 0 6px; font-weight: 600; color: var(--muted); }
+    select, textarea, input[type="text"] {
+      width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid #334072; background: #0c1330; color: var(--text);
+      outline: none; transition: border .15s ease;
+    }
+    select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { min-height: 110px; resize: vertical; }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+
+    .btn {
+      appearance: none; border: 0; background: linear-gradient(180deg, var(--accent), #4c87ff);
+      color: #051026; font-weight: 800; letter-spacing: .3px; padding: 12px 16px; border-radius: 14px; cursor: pointer; box-shadow: 0 6px 20px #2b54ff55;
+      transition: transform .06s ease, filter .2s ease; width: 100%;
+    }
+    .btn:disabled { filter: grayscale(0.7) brightness(.7); cursor: not-allowed; }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); }
+
+    .preview { background: #0a1028; border: 1px dashed #30407a; border-radius: 16px; min-height: 280px; display: grid; place-items: center; overflow: hidden; }
+    .preview img { width: 100%; height: auto; display: block; }
+
+    .hint { font-size: .92rem; color: var(--muted); }
+    .small { font-size: .86rem; color: #b6c4ff; }
+    .hidden { display: none; }
+    .status { margin-top: 10px; padding: 10px 12px; border-radius: 12px; }
+    .status.info { background: #0f1842; border: 1px solid #2c3a7a; }
+    .status.warn { background: #3d2a05; border: 1px solid #a77a01; color: #ffe9b2; }
+    .status.err  { background: #3d0d10; border: 1px solid #c23d45; color: #ffd6da; }
+
+    .tips { margin-top: 18px; padding: 14px 16px; border: 1px solid #2a335e; border-radius: 14px; background: #0e1633; }
+    .tips ul { margin: 6px 0 0 20px; }
+
+    .download { margin-top: 10px; display: flex; gap: 10px; align-items: center; }
+    .download a { text-decoration: none; color: var(--accent-2); font-weight: 700; }
+  </style>
+  <!--
+    ⚠️ 중요: 이 HTML은 API 키를 직접 담지 않습니다. 반드시 서버(백엔드)에서 OpenAI API를 호출하세요.
+    아래 JS는 /api/generate 로 POST 요청을 보냅니다. (예시 FastAPI/Express를 서버에 구현)
+
+    기대하는 응답 형식 (둘 중 하나)
+    1) { "image_b64": "<base64_png>" }
+    2) { "image_url": "https://..." }
+  -->
+</head>
+<body>
+  <header>
+    <h1>🪐 나만의 행성 그림 만들기</h1>
+    <p class="small">행성을 고르고 프롬프트를 적으면 AI가 이미지를 생성해요. (학교 내부 전용)</p>
+  </header>
+
+  <div class="container">
+    <div class="card grid">
+      <section>
+        <label for="planet">행성 선택</label>
+        <select id="planet">
+          <option value="Mercury" data-style="작고 회색빛, 많은 운석 크레이터, 대기 희박, 태양에 매우 가까움">수성 (Mercury)</option>
+          <option value="Venus" data-style="두꺼운 황백색 구름, 매우 뜨거움, 부드러운 광채, 약한 표면 디테일">금성 (Venus)</option>
+          <option value="Earth" data-style="푸른 바다, 하얀 구름, 초록과 갈색 대륙, 생명 넘치는 느낌">지구 (Earth)</option>
+          <option value="Mars" data-style="적갈색 사막, 거대한 화산과 협곡, 엷은 대기, 먼지폭풍 가능">화성 (Mars)</option>
+          <option value="Jupiter" data-style="갈색과 크림색 줄무늬, 거대한 붉은 점 폭풍, 거대 가스행성">목성 (Jupiter)</option>
+          <option value="Saturn" data-style="아름다운 고리, 황금빛 가스층, 섬세한 고리 구조 디테일">토성 (Saturn)</option>
+          <option value="Uranus" data-style="밝은 청록색, 옅은 구름, 옆으로 누운 자전축, 차분한 느낌">천왕성 (Uranus)</option>
+          <option value="Neptune" data-style="진한 파란색, 강한 바람, 어두운 점 폭풍 가능, 차갑고 깊은 바다 느낌">해왕성 (Neptune)</option>
+        </select>
+
+        <label for="prompt">프롬프트</label>
+        <textarea id="prompt" placeholder="예) 아이들이 바라보는 만화풍, 별빛이 반짝이는 배경, 따뜻한 색감"></textarea>
+
+        <div class="row">
+          <div>
+            <label for="style">스타일 (선택)</label>
+            <select id="style">
+              <option value="">자동</option>
+              <option>수채화</option>
+              <option>만화풍</option>
+              <option>픽셀아트</option>
+              <option>유화</option>
+              <option>리얼리즘</option>
+              <option>플랫 일러스트</option>
+            </select>
+          </div>
+          <div>
+            <label for="size">이미지 크기</label>
+            <select id="size">
+              <option>1024x1024</option>
+              <option>1024x1792</option>
+              <option>1792x1024</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:16px; display:flex; gap:10px; align-items:center;">
+          <button id="generate" class="btn">그림 만들기</button>
+          <span id="spinner" class="small hidden">생성 중입니다… 잠시만요.</span>
+        </div>
+
+        <div id="status" class="status info hidden"></div>
+        <div class="tips">
+          <div class="hint">💡 프롬프트 팁</div>
+          <ul>
+            <li>장면 요소를 구체적으로: 별, 성운, 우주선, 위성 등</li>
+            <li>색감·분위기: 따뜻한/차가운, 신비로운, 동화 같은</li>
+            <li>스타일: 수채화, 만화풍, 리얼 등</li>
+            <li>구도: “행성은 크게, 아이들은 작게” 같이 명시</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <div class="preview" id="preview">
+          <div class="hint">여기에 이미지가 표시됩니다</div>
+        </div>
+        <div class="download hidden" id="downloadWrap">
+          <a id="downloadLink" download>이미지 다운로드</a>
+          <span id="meta" class="small"></span>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+    const planetSel = el('planet');
+    const promptEl  = el('prompt');
+    const styleSel  = el('style');
+    const sizeSel   = el('size');
+    const genBtn    = el('generate');
+    const spinner   = el('spinner');
+    const statusBox = el('status');
+    const preview   = el('preview');
+    const dlWrap    = el('downloadWrap');
+    const dlLink    = el('downloadLink');
+    const meta      = el('meta');
+
+    function showStatus(msg, kind='info') {
+      statusBox.textContent = msg;
+      statusBox.className = `status ${kind}`;
+      statusBox.classList.remove('hidden');
+    }
+    function hideStatus() { statusBox.classList.add('hidden'); }
+
+    function showSpinner(on) {
+      spinner.classList.toggle('hidden', !on);
+      genBtn.disabled = on;
+    }
+
+    function setPreviewFromB64(b64) {
+      const src = `data:image/png;base64,${b64}`;
+      const img = new Image(); img.src = src; img.alt = '생성된 이미지';
+      preview.innerHTML = ''; preview.appendChild(img);
+      // 다운로드 링크 구성
+      const blob = b64ToBlob(b64, 'image/png');
+      const url = URL.createObjectURL(blob);
+      dlLink.href = url; dlLink.download = makeFileName('png');
+      dlWrap.classList.remove('hidden');
+      meta.textContent = new Date().toLocaleString();
+    }
+
+    function setPreviewFromURL(url) {
+      const img = new Image(); img.src = url; img.alt = '생성된 이미지'; img.referrerPolicy = 'no-referrer';
+      preview.innerHTML = ''; preview.appendChild(img);
+      dlLink.href = url; dlLink.download = makeFileName('jpg');
+      dlWrap.classList.remove('hidden');
+      meta.textContent = new Date().toLocaleString();
+    }
+
+    function makeFileName(ext) {
+      const p = planetSel.value || 'planet';
+      const ts = new Date().toISOString().replaceAll(':', '').replaceAll('-', '').slice(0,15);
+      return `${p}_${ts}.${ext}`;
+    }
+
+    function b64ToBlob(b64, contentType='application/octet-stream', sliceSize=512) {
+      const byteChars = atob(b64);
+      const byteArrays = [];
+      for (let offset = 0; offset < byteChars.length; offset += sliceSize) {
+        const slice = byteChars.slice(offset, offset + sliceSize);
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) byteNumbers[i] = slice.charCodeAt(i);
+        byteArrays.push(new Uint8Array(byteNumbers));
+      }
+      return new Blob(byteArrays, { type: contentType });
+    }
+
+    async function generate() {
+      hideStatus(); dlWrap.classList.add('hidden');
+      const userPrompt = (promptEl.value || '').trim();
+      if (!userPrompt) { showStatus('프롬프트를 입력해주세요.', 'warn'); return; }
+
+      const planet = planetSel.value;
+      const planetStyle = planetSel.options[planetSel.selectedIndex].dataset.style || '';
+      const style = styleSel.value;
+      const size = sizeSel.value;
+
+      const payload = { planet, planet_style: planetStyle, user_prompt: userPrompt, style, size };
+
+      showSpinner(true);
+      try {
+        // 
+        // 🔒 백엔드 엔드포인트 예시: /api/generate
+        // 서버는 OpenAI API 키를 보관하고, gpt-image-1 또는 dall-e-3로 이미지를 생성하여
+        // { image_b64: "..." } 또는 { image_url: "..." } 형태로 응답합니다.
+        //
+        const res = await fetch('/api/generate', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('이미지 생성 요청이 실패했습니다.');
+        const data = await res.json();
+
+        if (data.image_b64) {
+          setPreviewFromB64(data.image_b64);
+          showStatus('생성이 완료되었습니다.', 'info');
+        } else if (data.image_url) {
+          setPreviewFromURL(data.image_url);
+          showStatus('생성이 완료되었습니다.', 'info');
+        } else {
+          throw new Error('서버 응답에 이미지 데이터가 없습니다.');
+        }
+      } catch (err) {
+        console.error(err);
+        showStatus('오류: ' + (err?.message || err), 'err');
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    genBtn.addEventListener('click', generate);
+  </script>
+
+  <footer style="text-align:center; padding: 16px; color: #9db0ff66;">
+    © 2025 행성 일러스트 생성 데모 (학교 내부 전용)
+  </footer>
+</body>
+</html>
